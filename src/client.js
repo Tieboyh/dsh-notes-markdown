@@ -1,13 +1,17 @@
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
+import { CrepeBuilder } from '@milkdown/crepe/builder';
+import { codeMirror } from '@milkdown/crepe/feature/code-mirror';
+import { cursor } from '@milkdown/crepe/feature/cursor';
+import { linkTooltip } from '@milkdown/crepe/feature/link-tooltip';
+import { listItem } from '@milkdown/crepe/feature/list-item';
+import { placeholder } from '@milkdown/crepe/feature/placeholder';
+import { table } from '@milkdown/crepe/feature/table';
+import { toolbar } from '@milkdown/crepe/feature/toolbar';
 import React from 'react';
 
 const STYLE_ID = 'dsh-notes-markdown/css';
 const API_PREFIX = '/notes-markdown/api';
 const AUTOSAVE_MS = 700;
 const LIST_VISIBILITY_KEY = 'dsh-notes-markdown/list-collapsed';
-
-marked.setOptions({ gfm: true, breaks: false });
 
 const CSS = `
 .dmn-root{position:relative;height:100%;min-height:0;display:flex;flex-direction:column;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#171717);font-family:var(--ds-font-family,system-ui,sans-serif)}
@@ -16,16 +20,16 @@ const CSS = `
 .dmn-btn{appearance:none;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.28));border-radius:7px;background:transparent;color:inherit;min-height:28px;padding:3px 9px;font:12px/18px inherit;cursor:pointer;white-space:nowrap}.dmn-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.09))}.dmn-btn:focus-visible,.dmn-input:focus-visible{outline:2px solid var(--dsw-alias-button-primary-fill,#246bfd);outline-offset:1px}.dmn-root .dmn-btn.dmn-btn-primary,.dmn-root .dmn-btn.dmn-btn-primary:hover,.dmn-root .dmn-btn.dmn-btn-primary:active{border-color:var(--dsw-alias-button-primary-fill,#246bfd);background:var(--dsw-alias-button-primary-fill,#246bfd);color:var(--dsw-alias-button-primary-label,#fff)}.dmn-root .dmn-btn.dmn-btn-primary:hover{opacity:.86}.dmn-root .dmn-btn.dmn-btn-primary:active{opacity:.72}.dmn-btn-danger{color:var(--dsw-alias-state-error-primary,#d33)}.dmn-btn[disabled]{opacity:.45;cursor:not-allowed}.dmn-sidebar-toggle{width:30px;padding:3px;display:grid;place-items:center}.dmn-sidebar-toggle svg{display:block}
 .dmn-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(150px,28%) minmax(0,1fr);transition:grid-template-columns .18s ease}.dmn-body[data-list-collapsed='true']{grid-template-columns:0 minmax(0,1fr)}.dmn-list-pane{min-width:0;overflow:hidden;display:flex;flex-direction:column;border-right:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2));background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.025));transition:opacity .14s ease}.dmn-body[data-list-collapsed='true'] .dmn-list-pane{visibility:hidden;opacity:0;pointer-events:none}.dmn-search-wrap{padding:8px}.dmn-input{box-sizing:border-box;width:100%;height:30px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25));border-radius:7px;background:var(--dsw-alias-bg-base,#fff);color:inherit;padding:4px 8px;font:12px/20px inherit}.dmn-list{flex:1;min-height:0;overflow:auto;padding:0 6px 8px}.dmn-list-item{width:100%;display:block;border:0;border-radius:7px;background:transparent;color:inherit;text-align:left;padding:8px;cursor:pointer}.dmn-list-item:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.08))}.dmn-list-item[aria-current='true'],.dmn-list-item[data-context='true']{background:var(--dsw-alias-interactive-bg-active,rgba(36,107,253,.12));color:var(--dsw-alias-button-primary-fill,#246bfd)}.dmn-list-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:560}.dmn-list-meta{display:block;margin-top:2px;font-size:10px;color:var(--dsw-alias-label-tertiary,#888)}
 .dmn-main{min-width:0;min-height:0;display:flex;flex-direction:column}.dmn-note-bar{height:40px;flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.16))}.dmn-note-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}.dmn-copy-actions{display:flex;align-items:center;gap:3px}.dmn-icon-btn{position:relative;appearance:none;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary,#666);padding:0;cursor:pointer}.dmn-icon-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.09));color:var(--dsw-alias-label-primary,#171717)}.dmn-icon-btn:focus-visible{outline:2px solid var(--dsw-alias-button-primary-fill,#246bfd);outline-offset:1px}.dmn-icon-btn[data-copied='true']{color:var(--dsw-alias-state-success-primary,#168a45)}.dmn-icon-btn svg{display:block}.dmn-icon-btn[data-tooltip]::before{content:'';position:absolute;z-index:31;right:8px;top:calc(100% + 2px);border:4px solid transparent;border-bottom-color:rgba(22,24,29,.94);opacity:0;pointer-events:none;transform:translateY(-3px);transition:opacity .12s ease,transform .12s ease}.dmn-icon-btn[data-tooltip]::after{content:attr(data-tooltip);position:absolute;z-index:30;right:0;top:calc(100% + 10px);width:max-content;max-width:220px;border-radius:6px;background:rgba(22,24,29,.94);color:#fff;padding:5px 8px;box-shadow:0 5px 16px rgba(0,0,0,.2);font:11px/16px var(--ds-font-family,system-ui,sans-serif);white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(-3px);transition:opacity .12s ease,transform .12s ease}.dmn-icon-btn[data-tooltip]:hover::before,.dmn-icon-btn[data-tooltip]:hover::after,.dmn-icon-btn[data-tooltip]:focus-visible::before,.dmn-icon-btn[data-tooltip]:focus-visible::after{opacity:1;transform:translateY(0)}.dmn-segment{display:flex;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25));border-radius:7px;overflow:hidden}.dmn-segment button{appearance:none;border:0;border-right:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2));background:transparent;color:var(--dsw-alias-label-secondary,#666);padding:3px 8px;font:11px/20px inherit;cursor:pointer}.dmn-segment button:last-child{border-right:0}.dmn-segment button[aria-pressed='true']{background:var(--dsw-alias-interactive-bg-active,rgba(36,107,253,.12));color:var(--dsw-alias-button-primary-fill,#246bfd)}
-.dmn-editor{box-sizing:border-box;flex:1;min-height:0;width:100%;resize:none;border:0;outline:none;background:var(--dsw-alias-bg-base,#fff);color:inherit;padding:18px;font:13px/1.65 var(--ds-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);tab-size:2}.dmn-editor:focus,.dmn-editor:focus-visible{outline:none}.dmn-preview{flex:1;min-height:0;overflow:auto;padding:18px 22px;font-size:13px;line-height:1.7}.dmn-preview>*:first-child{margin-top:0}.dmn-preview h1,.dmn-preview h2,.dmn-preview h3{line-height:1.3;margin:1.4em 0 .55em}.dmn-preview h1{font-size:1.65em}.dmn-preview h2{font-size:1.35em;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2));padding-bottom:.3em}.dmn-preview h3{font-size:1.15em}.dmn-preview pre{overflow:auto;border-radius:8px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.08));padding:12px}.dmn-preview code{font-family:var(--ds-font-family-code,ui-monospace,monospace)}.dmn-preview blockquote{margin-left:0;border-left:3px solid var(--dsw-alias-button-primary-fill,#246bfd);padding-left:12px;color:var(--dsw-alias-label-secondary,#666)}.dmn-preview table{border-collapse:collapse}.dmn-preview th,.dmn-preview td{border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.25));padding:5px 8px}.dmn-preview img{max-width:100%}.dmn-preview a{color:var(--dsw-alias-link-primary,#246bfd)}
+.dmn-source-editor{box-sizing:border-box;flex:1;min-height:0;width:100%;resize:none;border:0;outline:none;background:var(--dsw-alias-bg-base,#fff);color:inherit;padding:18px;font:13px/1.65 var(--ds-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);tab-size:2}.dmn-source-editor:focus,.dmn-source-editor:focus-visible{outline:none}.dmn-live-editor{flex:1;min-height:0;overflow:auto;background:var(--dsw-alias-bg-base,#fff)}.dmn-live-editor .milkdown{min-height:100%;--crepe-color-background:var(--dsw-alias-bg-base,#fff);--crepe-color-on-background:var(--dsw-alias-label-primary,#171717);--crepe-color-surface:color-mix(in srgb,var(--dsw-alias-label-primary,#171717) 4%,var(--dsw-alias-bg-base,#fff));--crepe-color-surface-low:color-mix(in srgb,var(--dsw-alias-label-primary,#171717) 8%,var(--dsw-alias-bg-base,#fff));--crepe-color-on-surface:var(--dsw-alias-label-primary,#171717);--crepe-color-on-surface-variant:var(--dsw-alias-label-secondary,#666);--crepe-color-outline:var(--dsw-alias-border-l1,rgba(127,127,127,.28));--crepe-color-primary:var(--dsw-alias-button-primary-fill,#246bfd);--crepe-color-secondary:color-mix(in srgb,var(--dsw-alias-label-primary,#171717) 9%,var(--dsw-alias-bg-base,#fff));--crepe-color-on-secondary:var(--dsw-alias-label-primary,#171717);--crepe-color-inverse:var(--dsw-alias-label-primary,#171717);--crepe-color-on-inverse:var(--dsw-alias-bg-base,#fff);--crepe-color-inline-code:var(--dsw-alias-label-primary,#171717);--crepe-color-error:var(--dsw-alias-state-error-primary,#d33);--crepe-color-hover:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.09));--crepe-color-selected:var(--dsw-alias-interactive-bg-active,rgba(36,107,253,.14));--crepe-color-inline-area:color-mix(in srgb,var(--dsw-alias-label-primary,#171717) 12%,var(--dsw-alias-bg-base,#fff));--crepe-base-font-size:13px;--crepe-font-title:var(--ds-font-family,system-ui,sans-serif);--crepe-font-default:var(--ds-font-family,system-ui,sans-serif);--crepe-font-code:var(--ds-font-family-code,ui-monospace,SFMono-Regular,Menlo,monospace);--crepe-shadow-1:0 5px 18px rgba(0,0,0,.14);--crepe-shadow-2:0 9px 28px rgba(0,0,0,.18)}.dmn-live-editor .milkdown .ProseMirror{min-height:100%;padding:18px 22px;caret-color:var(--dsw-alias-label-primary,#171717)}.dmn-live-editor .milkdown .ProseMirror h1{font-size:1.65em;line-height:1.3;margin-top:1.15em}.dmn-live-editor .milkdown .ProseMirror h2{font-size:1.35em;line-height:1.3;margin-top:1.15em;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}.dmn-live-editor .milkdown .ProseMirror h3{font-size:1.15em;line-height:1.35;margin-top:1em}.dmn-live-editor .milkdown .ProseMirror h4,.dmn-live-editor .milkdown .ProseMirror h5,.dmn-live-editor .milkdown .ProseMirror h6{font-size:1em;line-height:1.4;margin-top:.9em;font-weight:650}.dmn-live-editor .milkdown .ProseMirror blockquote{border-left-color:var(--dsw-alias-button-primary-fill,#246bfd)}.dmn-live-editor .milkdown .milkdown-code-block{overflow:hidden;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:9px}.dmn-live-editor .milkdown .milkdown-code-block .cm-editor{font-size:12px}.dmn-live-editor .milkdown .milkdown-toolbar,.dmn-live-editor .milkdown .milkdown-link-preview,.dmn-live-editor .milkdown .milkdown-link-edit{z-index:12}
 .dmn-empty{flex:1;display:grid;place-items:center;padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary,#888)}.dmn-empty strong{display:block;color:var(--dsw-alias-label-secondary,#666);margin-bottom:7px}.dmn-error{flex:0 0 auto;margin:8px 10px 0;border:1px solid color-mix(in srgb,var(--dsw-alias-state-error-primary,#d33) 35%,transparent);border-radius:7px;background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#d33) 8%,transparent);color:var(--dsw-alias-state-error-primary,#d33);padding:7px 9px;font-size:11px}.dmn-loading{opacity:.62;pointer-events:none}
 .dmn-modal-backdrop{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:12px;background:rgba(15,17,21,.24);backdrop-filter:blur(2px)}.dmn-root form.dmn-modal{box-sizing:border-box;width:min(320px,calc(100% - 24px));max-width:320px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.24));border-radius:10px;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 12px 36px rgba(0,0,0,.2);padding:14px}.dmn-root .dmn-modal h3{margin:0 0 12px;font-size:14px;line-height:20px}.dmn-root .dmn-modal p{margin:0 0 10px;color:var(--dsw-alias-label-secondary,#666);font-size:11px;line-height:1.5}.dmn-root .dmn-modal label{display:block;margin:0 0 5px;font-size:11px;line-height:16px}.dmn-root .dmn-modal .dmn-input{height:32px;min-height:32px;border-radius:7px;padding:4px 8px;font-size:12px;line-height:22px;outline:none}.dmn-root .dmn-modal .dmn-input:focus,.dmn-root .dmn-modal .dmn-input:focus-visible{border-color:var(--dsw-alias-button-primary-fill,#246bfd);outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-button-primary-fill,#246bfd) 16%,transparent)}.dmn-modal-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:12px}.dmn-root .dmn-modal-actions .dmn-btn{min-height:27px;padding:3px 9px}
 .dmn-context-dismiss{position:absolute;inset:0;z-index:14;border:0;background:transparent}.dmn-context-menu{position:absolute;z-index:15;box-sizing:border-box;min-width:128px;padding:4px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.22));border-radius:8px;background:var(--dsw-alias-bg-base,#fff);box-shadow:0 8px 28px rgba(0,0,0,.18)}.dmn-root .dmn-context-item{display:block;width:100%;height:28px;border:0;border-radius:5px;background:transparent;color:inherit;padding:4px 9px;text-align:left;font:12px/20px inherit;cursor:pointer}.dmn-root .dmn-context-item:hover,.dmn-root .dmn-context-item:focus-visible{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.09));outline:none}.dmn-root .dmn-context-item-danger{color:var(--dsw-alias-state-error-primary,#d33)}
-@media(max-width:520px){.dmn-toolbar{padding:0 7px}.dmn-title{display:none}.dmn-body{grid-template-columns:120px minmax(0,1fr)}.dmn-list-item{padding:7px 5px}.dmn-editor,.dmn-preview{padding:12px}.dmn-note-bar{padding:0 7px}.dmn-note-bar .dmn-btn-label{display:none}}
+@media(max-width:520px){.dmn-toolbar{padding:0 7px}.dmn-title{display:none}.dmn-body{grid-template-columns:120px minmax(0,1fr)}.dmn-list-item{padding:7px 5px}.dmn-source-editor,.dmn-live-editor .milkdown .ProseMirror{padding:12px}.dmn-note-bar{padding:0 7px}.dmn-note-bar .dmn-btn-label{display:none}}
 `;
 
 const COPY = {
   en: {
-    title: 'Markdown Notes', new: 'New', search: 'Search notes', edit: 'Edit', preview: 'Preview',
+    title: 'Markdown Notes', new: 'New', search: 'Search notes', live: 'Live edit', source: 'Source',
     rename: 'Rename', delete: 'Delete', emptyTitle: 'No Markdown notes yet', emptyBody: 'Create a note to start writing.',
     loading: 'Loading…', saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved', conflict: 'Save conflict',
     renameTitle: 'Rename note', nameLabel: 'Document name', cancel: 'Cancel',
@@ -33,9 +37,10 @@ const COPY = {
     listError: 'Could not load notes.', readError: 'Could not open the note.', saveError: 'Could not save the note.',
     actionError: 'The operation failed.', justNow: 'just now', open: 'Open note', showList: 'Show note list', hideList: 'Hide note list',
     copyContent: 'Copy content', copyPath: 'Copy absolute file path', copied: 'Copied', copyError: 'Could not copy.',
+    livePlaceholder: 'Start writing…', liveEditorError: 'Could not start live editing.',
   },
   zh: {
-    title: 'Markdown 笔记', new: '新建', search: '搜索笔记', edit: '编辑', preview: '预览',
+    title: 'Markdown 笔记', new: '新建', search: '搜索笔记', live: '实时编辑', source: '源码',
     rename: '重命名', delete: '删除', emptyTitle: '还没有 Markdown 笔记', emptyBody: '新建一篇文档开始记录。',
     loading: '加载中…', saved: '已保存', saving: '保存中…', unsaved: '未保存', conflict: '保存冲突',
     renameTitle: '重命名笔记', nameLabel: '文档名称', cancel: '取消',
@@ -43,6 +48,7 @@ const COPY = {
     listError: '无法加载笔记列表。', readError: '无法打开笔记。', saveError: '无法保存笔记。',
     actionError: '操作失败。', justNow: '刚刚', open: '打开笔记', showList: '展开笔记列表', hideList: '收起笔记列表',
     copyContent: '复制内容', copyPath: '复制文件绝对路径', copied: '已复制', copyError: '无法复制。',
+    livePlaceholder: '开始记录…', liveEditorError: '无法启动实时编辑。',
   },
 };
 
@@ -80,7 +86,7 @@ function injectStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  style.textContent = CSS;
+  style.textContent = `${__CREPE_CSS__}\n${CSS}`;
   document.head.appendChild(style);
 }
 
@@ -129,6 +135,39 @@ function workspaceNameOf(cwd) {
   return segments.at(-1)?.trim() || 'note';
 }
 
+function LiveEditor({ noteId, content, placeholderText, onChange, onError }) {
+  const rootRef = React.useRef(null);
+  const onChangeRef = React.useRef(onChange);
+  const onErrorRef = React.useRef(onError);
+
+  React.useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  React.useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  React.useEffect(() => {
+    const builder = new CrepeBuilder({ root: rootRef.current, defaultValue: content })
+      .addFeature(cursor)
+      .addFeature(listItem)
+      .addFeature(linkTooltip)
+      .addFeature(toolbar)
+      .addFeature(placeholder, { text: placeholderText, mode: 'block' })
+      .addFeature(codeMirror)
+      .addFeature(table);
+    let disposed = false;
+    builder.on((listener) => listener.markdownUpdated((_ctx, markdown, previous) => {
+      if (!disposed && markdown !== previous) onChangeRef.current(markdown);
+    }));
+    const ready = builder.create().then(() => true, (error) => {
+      if (!disposed) onErrorRef.current(error);
+      return false;
+    });
+    return () => {
+      disposed = true;
+      void ready.then((created) => created ? builder.destroy() : undefined).catch(() => {});
+    };
+  }, [noteId, placeholderText]);
+
+  return React.createElement('div', { ref: rootRef, className: 'dmn-live-editor' });
+}
+
 function Dialog({ type, note, copy, busy, onCancel, onSubmit }) {
   const [value, setValue] = React.useState(note?.title || '');
   const inputRef = React.useRef(null);
@@ -157,7 +196,7 @@ function NotesView({ visible, workspaceName }) {
   const [note, setNote] = React.useState(null);
   const [savedContent, setSavedContent] = React.useState('');
   const [query, setQuery] = React.useState('');
-  const [mode, setMode] = React.useState('edit');
+  const [mode, setMode] = React.useState('live');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const [saveState, setSaveState] = React.useState('saved');
@@ -256,7 +295,7 @@ function NotesView({ visible, workspaceName }) {
       setNote(result.note);
       setSavedContent(result.note.content);
       setSaveState('saved');
-      setMode('edit');
+      setMode('live');
       return true;
     } catch (readError) {
       setError(`${copy.readError} ${readError.message}`);
@@ -358,7 +397,6 @@ function NotesView({ visible, workspaceName }) {
     const needle = query.trim().toLocaleLowerCase();
     return needle ? notes.filter((item) => item.title.toLocaleLowerCase().includes(needle)) : notes;
   }, [notes, query]);
-  const previewHtml = React.useMemo(() => ({ __html: DOMPurify.sanitize(marked.parse(note?.content || '')) }), [note?.content]);
   const statusText = saveState === 'saving' ? copy.saving : saveState === 'unsaved' ? copy.unsaved : saveState === 'conflict' ? copy.conflict : copy.saved;
 
   async function createNote() {
@@ -373,7 +411,7 @@ function NotesView({ visible, workspaceName }) {
       setNote(result.note);
       setSavedContent(result.note.content);
       setSaveState('saved');
-      setMode('edit');
+      setMode('live');
     } catch (createError) {
       setError(`${copy.actionError} ${createError.message}`);
     } finally {
@@ -439,11 +477,15 @@ function NotesView({ visible, workspaceName }) {
                 onClick: () => void copyNote('path'),
               }, React.createElement(CopyIcon, { kind: 'path', copied: copiedKind === 'path' }))),
             React.createElement('div', { className: 'dmn-segment' },
-              React.createElement('button', { type: 'button', 'aria-pressed': mode === 'edit', onClick: () => setMode('edit') }, copy.edit),
-              React.createElement('button', { type: 'button', 'aria-pressed': mode === 'preview', onClick: () => setMode('preview') }, copy.preview))),
-          mode === 'edit'
-            ? React.createElement('textarea', { className: 'dmn-editor', value: note.content, spellCheck: true, onChange: (event) => setNote((current) => ({ ...current, content: event.target.value })) })
-            : React.createElement('article', { className: 'dmn-preview', dangerouslySetInnerHTML: previewHtml }))
+              React.createElement('button', { type: 'button', 'aria-pressed': mode === 'live', onClick: () => setMode('live') }, copy.live),
+              React.createElement('button', { type: 'button', 'aria-pressed': mode === 'source', onClick: () => setMode('source') }, copy.source))),
+          mode === 'source'
+            ? React.createElement('textarea', { className: 'dmn-source-editor', value: note.content, spellCheck: false, onChange: (event) => setNote((current) => ({ ...current, content: event.target.value })) })
+            : React.createElement(LiveEditor, {
+              noteId: note.name, content: note.content, placeholderText: copy.livePlaceholder,
+              onChange: (content) => setNote((current) => current ? { ...current, content } : current),
+              onError: (liveError) => { setError(`${copy.liveEditorError} ${liveError.message}`); setMode('source'); },
+            }))
         : React.createElement('div', { className: 'dmn-empty' }, React.createElement('div', null, React.createElement('strong', null, copy.emptyTitle), React.createElement('span', null, copy.emptyBody))))),
     contextMenu ? React.createElement(React.Fragment, null,
       React.createElement('div', { className: 'dmn-context-dismiss', 'aria-hidden': 'true', onPointerDown: () => setContextMenu(null), onContextMenu: (event) => { event.preventDefault(); setContextMenu(null); } }),

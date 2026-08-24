@@ -1,7 +1,7 @@
 {
   "name": "dsh-notes-markdown",
   "version": "0.1.0",
-  "description": "Editable Markdown notes in the DeepSeek Harness sidebar, with safe file CRUD and autosave.",
+  "description": "Live-editable Markdown notes in the DeepSeek Harness sidebar, with source mode, safe file CRUD, and autosave.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Tieboyh/dsh-notes-markdown.git"
@@ -17,6 +17,7 @@
   },
   "files": [
     "lib",
+    "docs/images",
     "cordis.patch.yml",
     "README.md",
     "README.zh-CN.md",
@@ -53,8 +54,7 @@
     "node": ">=22.19.0"
   },
   "devDependencies": {
-    "dompurify": "^3.2.6",
-    "esbuild": "^0.28.2",
-    "marked": "^16.2.1"
+    "@milkdown/crepe": "^7.22.1",
+    "esbuild": "^0.28.2"
   }
 }
