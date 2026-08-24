@@ -1,0 +1,60 @@
+{
+  "name": "dsh-notes-markdown",
+  "version": "0.1.0",
+  "description": "Editable Markdown notes in the DeepSeek Harness sidebar, with safe file CRUD and autosave.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tieboyh/dsh-notes-markdown.git"
+  },
+  "homepage": "https://github.com/Tieboyh/dsh-notes-markdown#readme",
+  "bugs": "https://github.com/Tieboyh/dsh-notes-markdown/issues",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --check src/index.js && node --check src/storage.js && node --check src/client.js && node --check scripts/build.mjs && node --test",
+    "prepack": "npm run check && npm run build"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "peerDependencies": {
+    "dsh-better-sidebar": ">=0.4.0"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "markdown",
+    "notes",
+    "sidebar",
+    "editor"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "devDependencies": {
+    "dompurify": "^3.2.6",
+    "esbuild": "^0.28.2",
+    "marked": "^16.2.1"
+  }
+}
