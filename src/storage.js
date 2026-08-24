@@ -34,6 +34,13 @@ function titleOf(name) {
   return basename(name, extname(name));
 }
 
+function autoNameBase(value) {
+  const cleaned = typeof value === 'string'
+    ? value.trim().replace(/\.md$/i, '').replace(/[\\/\u0000]/g, '-').replace(/^\.+/, '').replace(/\s+/g, ' ')
+    : '';
+  return cleaned.slice(0, 100).trim() || 'note';
+}
+
 class NotesStore {
   constructor(root, { maxBytes = DEFAULT_MAX_BYTES } = {}) {
     this.root = resolve(root);
@@ -105,6 +112,7 @@ class NotesStore {
     return {
       name,
       title: titleOf(name),
+      path: target,
       content,
       revision: revisionOf(content),
       size: info.size,
@@ -116,7 +124,7 @@ class NotesStore {
     return this.mutate(async () => {
       await this.initialize();
       const { name, target } = this.pathFor(value);
-      const content = `# ${titleOf(name)}\n`;
+      const content = '';
       try {
         await writeFile(target, content, { encoding: 'utf8', flag: 'wx' });
       } catch (error) {
@@ -124,6 +132,23 @@ class NotesStore {
         throw error;
       }
       return this.read(name);
+    });
+  }
+
+  async createNumbered(workspaceName) {
+    return this.mutate(async () => {
+      await this.initialize();
+      const base = autoNameBase(workspaceName);
+      for (let number = 1; ; number += 1) {
+        const { name, target } = this.pathFor(`${base}-${number}`);
+        const content = '';
+        try {
+          await writeFile(target, content, { encoding: 'utf8', flag: 'wx' });
+          return this.read(name);
+        } catch (error) {
+          if (error?.code !== 'EEXIST') throw error;
+        }
+      }
     });
   }
 
@@ -189,4 +214,4 @@ class NotesStore {
   }
 }
 
-export { DEFAULT_MAX_BYTES, NoteError, NotesStore, normalizeName, revisionOf, titleOf };
+export { DEFAULT_MAX_BYTES, NoteError, NotesStore, autoNameBase, normalizeName, revisionOf, titleOf };

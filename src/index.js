@@ -42,7 +42,7 @@ function apply(ctx) {
   const dispatch = {
     list: async () => ({ notes: await store.list() }),
     read: async (body) => ({ note: await store.read(body.name) }),
-    create: async (body) => ({ note: await store.create(body.name) }),
+    create: async (body) => ({ note: await store.createNumbered(body.workspaceName) }),
     save: async (body) => ({ note: await store.save(body.name, body.content, body.revision) }),
     rename: async (body) => ({ note: await store.rename(body.name, body.nextName, body.revision) }),
     delete: async (body) => ({ deleted: await store.delete(body.name, body.revision) }),

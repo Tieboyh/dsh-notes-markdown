@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { NoteError, NotesStore, normalizeName } from '../src/storage.js';
+import { NoteError, NotesStore, autoNameBase, normalizeName } from '../src/storage.js';
 
 async function fixture(run) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-notes-markdown-'));
@@ -24,7 +24,8 @@ test('normalizes document names and rejects traversal', () => {
 test('creates, lists, reads, and saves Markdown files', async () => fixture(async (store, root) => {
   const created = await store.create('Daily');
   assert.equal(created.name, 'Daily.md');
-  assert.equal(created.content, '# Daily\n');
+  assert.equal(created.path, join(root, 'Daily.md'));
+  assert.equal(created.content, '');
   assert.deepEqual((await store.list()).map((note) => note.name), ['Daily.md']);
 
   const saved = await store.save(created.name, '# Daily\n\nDone.\n', created.revision);
@@ -80,4 +81,13 @@ test('never overwrites an existing document during create or rename', async () =
     store.rename(first.name, 'Second', first.revision),
     (error) => error instanceof NoteError && error.code === 'already_exists',
   );
+}));
+
+test('creates numbered notes from the workspace name without collisions', async () => fixture(async (store) => {
+  const first = await store.createNumbered('dsh-plugin');
+  const second = await store.createNumbered('dsh-plugin');
+  assert.equal(first.name, 'dsh-plugin-1.md');
+  assert.equal(second.name, 'dsh-plugin-2.md');
+  assert.equal(first.content, '');
+  assert.equal(autoNameBase('../hidden/workspace'), '-hidden-workspace');
 }));
