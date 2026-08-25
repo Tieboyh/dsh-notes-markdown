@@ -46,7 +46,7 @@
     },
     "install": {
       "mode": "guided",
-      "adapter": "harness-cordis",
+      "adapter": "third-party",
       "failurePolicy": "manual",
       "touchesCurrentBeforeActivation": true
     },
