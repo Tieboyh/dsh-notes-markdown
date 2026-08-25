@@ -37,6 +37,45 @@
       "inject": []
     }
   },
+  "dshWorkshop": {
+    "schema": "omdsh-workshop-package/v1",
+    "type": "plugin",
+    "integration": {
+      "protocol": "harness-cordis",
+      "artifact": "cordis.patch.yml"
+    },
+    "install": {
+      "mode": "guided",
+      "adapter": "harness-cordis",
+      "failurePolicy": "manual",
+      "touchesCurrentBeforeActivation": true
+    },
+    "lifecycle": {
+      "activation": "restart-host",
+      "dispose": "unknown"
+    },
+    "permissions": [
+      "clipboard:write",
+      "environment:read",
+      "filesystem:delete",
+      "filesystem:read",
+      "filesystem:write",
+      "sidebar:register",
+      "webserver:register"
+    ],
+    "capability": {
+      "id": "markdown-notes.ui",
+      "kind": "ui",
+      "invocation": "Open Markdown Notes from Better Sidebar and create a note.",
+      "expected": "An empty workspace-number Markdown document appears and edits are autosaved to the configured notes directory."
+    },
+    "evidence": {
+      "install": "README.md",
+      "failureIsolation": null,
+      "hotReload": "README.md",
+      "remove": null
+    }
+  },
   "peerDependencies": {
     "dsh-better-sidebar": ">=0.4.0"
   },
